@@ -79,6 +79,7 @@ interface ProjectsVDCRProps {
 const ProjectsVDCR = ({ projectId, projectName, onBack, onViewDetails, onViewEquipment }: ProjectsVDCRProps) => {
   const { user, userName } = useAuth();
   const { toast } = useToast();
+  const currentUserRole = localStorage.getItem('userRole') || '';
 
   // Helper function to get correct user ID from database (only called if 409 error occurs)
   const fetchCorrectUserIdFromDB = async (): Promise<string | null> => {
@@ -1690,26 +1691,30 @@ const ProjectsVDCR = ({ projectId, projectName, onBack, onViewDetails, onViewEqu
           </h2>
         </div>
         <div className="flex items-stretch sm:items-center gap-2 sm:gap-2">
-          <Button
-            size="sm"
-            className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 shadow-md hover:shadow-lg transition-all duration-200"
-            onClick={handleBulkUpload}
-          >
-            <FileText size={14} className="mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Bulk Upload VDCR</span>
-            <span className="sm:hidden">Bulk Upload</span>
-          </Button>
+          {currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 shadow-md hover:shadow-lg transition-all duration-200"
+              onClick={handleBulkUpload}
+            >
+              <FileText size={14} className="mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Bulk Upload VDCR</span>
+              <span className="sm:hidden">Bulk Upload</span>
+            </Button>
+          )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 hover:text-gray-800 px-3 sm:px-4"
-            onClick={handleAddNewVDCR}
-          >
-            <Edit size={14} className="mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Update VDCR</span>
-            <span className="sm:hidden">Update</span>
-          </Button>
+          {currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 hover:text-gray-800 px-3 sm:px-4"
+              onClick={handleAddNewVDCR}
+            >
+              <Edit size={14} className="mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Update VDCR</span>
+              <span className="sm:hidden">Update</span>
+            </Button>
+          )}
 
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -3124,26 +3129,28 @@ const ProjectsVDCR = ({ projectId, projectName, onBack, onViewDetails, onViewEqu
                       </div>
                     </td>
                     <td className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">
-                      <div className="flex gap-1 sm:gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 sm:h-8 px-2 sm:px-3 text-xs bg-white hover:bg-blue-50 border-blue-200 hover:border-blue-300 transition-all duration-200 shadow-sm"
-                          onClick={() => handleEditVDCR(record)}
-                        >
-                          <Edit size={10} className="sm:w-3 sm:h-3 mr-1" />
-                          <span className="hidden sm:inline">Edit</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 sm:h-8 px-2 sm:px-3 text-xs bg-white hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200 shadow-sm"
-                          onClick={() => handleDeleteVDCR(record.id)}
-                        >
-                          <X size={10} className="sm:w-3 sm:h-3 mr-1" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </Button>
-                      </div>
+                      {currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+                        <div className="flex gap-1 sm:gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 sm:h-8 px-2 sm:px-3 text-xs bg-white hover:bg-blue-50 border-blue-200 hover:border-blue-300 transition-all duration-200 shadow-sm"
+                            onClick={() => handleEditVDCR(record)}
+                          >
+                            <Edit size={10} className="sm:w-3 sm:h-3 mr-1" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 sm:h-8 px-2 sm:px-3 text-xs bg-white hover:bg-red-50 border-red-200 hover:border-red-300 transition-all duration-200 shadow-sm"
+                            onClick={() => handleDeleteVDCR(record.id)}
+                          >
+                            <X size={10} className="sm:w-3 sm:h-3 mr-1" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </Button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

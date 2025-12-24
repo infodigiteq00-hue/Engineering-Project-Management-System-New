@@ -435,7 +435,7 @@ const CompletionCertificatesTab = ({
                         </div>
                         
                         {/* Edit & Delete Buttons */}
-                        {userRole !== 'vdcr_manager' && (
+                        {userRole !== 'vdcr_manager' && userRole !== 'editor' && userRole !== 'viewer' && (
                           <div className="flex items-center gap-1 pb-0 sm:pb-1">
                             <button
                               onClick={(e) => {
@@ -930,23 +930,25 @@ const CompletionCertificatesTab = ({
                         <span className="sm:hidden">VDCR</span>
                         <span className="hidden sm:inline">View VDCR</span>
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onSelectProject(project.id, "project-details");
-                        }}
-                        className="w-full sm:flex-1 h-8 sm:h-8 px-2 sm:px-3 text-[11px] sm:text-sm whitespace-nowrap justify-center bg-white hover:bg-purple-50 border-gray-300 text-gray-700 hover:text-purple-700 hover:border-purple-300 font-medium transition-all duration-200"
-                      >
-                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <span className="sm:hidden">Details</span>
-                        <span className="hidden sm:inline">Details</span>
-                      </Button>
+                      {userRole !== 'vdcr_manager' && userRole !== 'editor' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onSelectProject(project.id, "project-details");
+                          }}
+                          className="w-full sm:flex-1 h-8 sm:h-8 px-2 sm:px-3 text-[11px] sm:text-sm whitespace-nowrap justify-center bg-white hover:bg-purple-50 border-gray-300 text-gray-700 hover:text-purple-700 hover:border-purple-300 font-medium transition-all duration-200"
+                        >
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span className="sm:hidden">Details</span>
+                          <span className="hidden sm:inline">Details</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

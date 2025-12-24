@@ -109,6 +109,7 @@ interface ProjectDetailsProps {
 const ProjectDetails = ({ project, onBack, onViewEquipment, onViewVDCR, vdcrData = [], onEditProject, onDeleteProject, onCompleteProject }: ProjectDetailsProps) => {
   const [activeTab, setActiveTab] = useState("team-details");
   const { toast } = useToast();
+  const currentUserRole = localStorage.getItem('userRole') || '';
 
   // Safety check: if project is undefined, navigate back
   if (!project) {
@@ -550,43 +551,45 @@ const ProjectDetails = ({ project, onBack, onViewEquipment, onViewVDCR, vdcrData
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-                    <Button
-                      onClick={() => onEditProject?.(project.id)}
-                      variant="outline"
-                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 hover:text-blue-800 text-sm sm:text-base"
-                    >
-                      <Pencil size={14} className="sm:w-4 sm:h-4" />
-                      <span className="hidden sm:inline">Edit Project</span>
-                      <span className="sm:hidden">Edit</span>
-                    </Button>
-
-                    {project.status !== 'completed' && (
+                  {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                       <Button
-                        onClick={() => onCompleteProject?.(project.id)}
+                        onClick={() => onEditProject?.(project.id)}
                         variant="outline"
-                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800 text-sm sm:text-base"
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 hover:text-blue-800 text-sm sm:text-base"
+                      >
+                        <Pencil size={14} className="sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Edit Project</span>
+                        <span className="sm:hidden">Edit</span>
+                      </Button>
+
+                      {project.status !== 'completed' && (
+                        <Button
+                          onClick={() => onCompleteProject?.(project.id)}
+                          variant="outline"
+                          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800 text-sm sm:text-base"
+                        >
+                          <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="hidden sm:inline">Mark Complete</span>
+                          <span className="sm:hidden">Complete</span>
+                        </Button>
+                      )}
+
+                      <Button
+                        onClick={() => onDeleteProject?.(project.id)}
+                        variant="outline"
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800 text-sm sm:text-base"
                       >
                         <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        <span className="hidden sm:inline">Mark Complete</span>
-                        <span className="sm:hidden">Complete</span>
+                        <span className="hidden sm:inline">Delete Project</span>
+                        <span className="sm:hidden">Delete</span>
                       </Button>
-                    )}
-
-                    <Button
-                      onClick={() => onDeleteProject?.(project.id)}
-                      variant="outline"
-                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800 text-sm sm:text-base"
-                    >
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      <span className="hidden sm:inline">Delete Project</span>
-                      <span className="sm:hidden">Delete</span>
-                    </Button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </Card>
 

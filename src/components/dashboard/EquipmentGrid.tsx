@@ -57,11 +57,12 @@ interface EquipmentGridProps {
     dispatched: number;
     completed: number;
   }) => void;
-}
+}    
 
 const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetails, onViewVDCR, onUserAdded, onActivityUpdate, onViewingDetailsChange, onSummaryChange }: EquipmentGridProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const currentUserRole = localStorage.getItem('userRole') || '';
   const [imageIndices, setImageIndices] = useState<Record<string, number>>({});
   const [showAddEquipmentForm, setShowAddEquipmentForm] = useState(false);
   const [showMiniForm, setShowMiniForm] = useState(false);
@@ -5141,7 +5142,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
           {/* Unified Tabbed Interface */}
           <Tabs value={equipmentDetailsTab} onValueChange={setEquipmentDetailsTab} className="w-full">
             <div className="overflow-x-auto overflow-y-hidden xl:overflow-x-visible xl:overflow-y-visible mb-16 scroll-smooth p-1">
-              <TabsList className="flex xl:grid min-w-max xl:w-full bg-transparent rounded-2xl p-2 xl:grid-cols-3 gap-2 flex-nowrap">
+              <TabsList className={`flex xl:grid min-w-max xl:w-full bg-transparent rounded-2xl p-2 ${(currentUserRole === 'vdcr_manager' || currentUserRole === 'editor' || currentUserRole === 'viewer') ? 'xl:grid-cols-2' : 'xl:grid-cols-3'} gap-2 flex-nowrap`}>
                 <TabsTrigger 
                   value="equipment-details" 
                   className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-blue-600 data-[state=active]:hover:to-blue-700 flex-shrink-0"
@@ -5162,15 +5163,17 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                   <span>Equipment Logs</span>
                 </TabsTrigger>
 
-                <TabsTrigger 
-                  value="settings" 
-                  className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-gray-600 data-[state=active]:hover:to-gray-700 flex-shrink-0"
-                >
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                    <Settings size={20} className="text-gray-600 data-[state=active]:text-white" />
-                  </div>
-                  <span>Settings</span>
-                </TabsTrigger>
+                {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+                  <TabsTrigger 
+                    value="settings" 
+                    className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-gray-600 data-[state=active]:hover:to-gray-700 flex-shrink-0"
+                  >
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                      <Settings size={20} className="text-gray-600 data-[state=active]:text-white" />
+                    </div>
+                    <span>Settings</span>
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
@@ -6247,7 +6250,8 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
             </TabsContent>
 
             {/* Settings Tab */}
-            <TabsContent value="settings" className="space-y-6 mt-8">
+            {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+              <TabsContent value="settings" className="space-y-6 mt-8">
               <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
                 <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
                   <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -6503,6 +6507,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                 </div>
               </div>
             </TabsContent>
+            )}
           </Tabs>
 
           {/* Add Member Modal */}
@@ -7097,7 +7102,8 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
     <div className="space-y-6">
 
       {/* Add New Equipment Section */}
-      <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+      {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <div className="w-7 h-7 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -7284,6 +7290,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
           </div>
         )}
       </div>
+      )}
 
       {/* Search Equipment */}
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
@@ -8223,18 +8230,20 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                 ))}
                               </>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingEquipmentId(item.id);
-                                setIsAddSectionModalOpen(true);
-                              }}
-                              className="text-xs sm:text-sm px-3 py-1.5 sm:py-1 h-8 sm:h-7 bg-green-100 text-green-700 border-green-300 hover:bg-green-200 whitespace-nowrap flex-shrink-0"
-                            >
-                              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
-                              Add Section
-                            </Button>
+                            {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && currentUserRole !== 'editor' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingEquipmentId(item.id);
+                                  setIsAddSectionModalOpen(true);
+                                }}
+                                className="text-xs sm:text-sm px-3 py-1.5 sm:py-1 h-8 sm:h-7 bg-green-100 text-green-700 border-green-300 hover:bg-green-200 whitespace-nowrap flex-shrink-0"
+                              >
+                                <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1" />
+                                Add Section
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -8259,56 +8268,58 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                     <>
                                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
                                         <h4 className="text-sm font-semibold text-gray-900">{currentSection.name}</h4>
-                                        <div className="flex flex-row gap-2 flex-nowrap">
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => {
-                                              setShowAddFieldInputs(prev => ({ ...prev, [item.id]: true }));
-                                              setNewFieldName('');
-                                              setNewFieldValue('');
-                                            }}
-                                            className="text-xs px-2 sm:px-3 py-1 h-7 bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap flex-shrink-0"
-                                          >
-                                            <Plus className="w-3 h-3 sm:mr-1" />
-                                            <span className="hidden sm:inline">Add Custom Field</span>
-                                            <span className="sm:hidden">Add Custom Field</span>
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={async () => {
-                                              if (isEditMode[item.id]) {
-                                                // Done Editing - Save changes directly to database
-                                                try {
-                                                  await fastAPI.updateEquipment(item.id, {
-                                                    technical_sections: technicalSections[item.id] || []
-                                                  }, user?.id);
+                                        {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && currentUserRole !== 'editor' && (
+                                          <div className="flex flex-row gap-2 flex-nowrap">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => {
+                                                setShowAddFieldInputs(prev => ({ ...prev, [item.id]: true }));
+                                                setNewFieldName('');
+                                                setNewFieldValue('');
+                                              }}
+                                              className="text-xs px-2 sm:px-3 py-1 h-7 bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap flex-shrink-0"
+                                            >
+                                              <Plus className="w-3 h-3 sm:mr-1" />
+                                              <span className="hidden sm:inline">Add Custom Field</span>
+                                              <span className="sm:hidden">Add Custom Field</span>
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={async () => {
+                                                if (isEditMode[item.id]) {
+                                                  // Done Editing - Save changes directly to database
+                                                  try {
+                                                    await fastAPI.updateEquipment(item.id, {
+                                                      technical_sections: technicalSections[item.id] || []
+                                                    }, user?.id);
 
-                                                  toast({
-                                                    title: "Success",
-                                                    description: "Custom fields updated successfully",
-                                                  });
-                                                } catch (error) {
-                                                  console.error('Error saving custom fields:', error);
-                                                  toast({
-                                                    title: "Error",
-                                                    description: "Failed to save custom fields",
-                                                    variant: "destructive",
-                                                  });
+                                                    toast({
+                                                      title: "Success",
+                                                      description: "Custom fields updated successfully",
+                                                    });
+                                                  } catch (error) {
+                                                    console.error('Error saving custom fields:', error);
+                                                    toast({
+                                                      title: "Error",
+                                                      description: "Failed to save custom fields",
+                                                      variant: "destructive",
+                                                    });
+                                                  }
                                                 }
-                                              }
-                                              
-                                              setIsEditMode(prev => ({ ...prev, [item.id]: !prev[item.id] }));
-                                              setShowAddFieldInputs(prev => ({ ...prev, [item.id]: false }));
-                                            }}
-                                            className="text-xs px-2 sm:px-3 py-1 h-7 bg-green-600 text-white hover:bg-green-700 whitespace-nowrap flex-shrink-0"
-                                          >
-                                            <Edit className="w-3 h-3 sm:mr-1" />
-                                            <span className="hidden sm:inline">{isEditMode[item.id] ? 'Done Editing' : 'Edit Custom Field'}</span>
-                                            <span className="sm:hidden">{isEditMode[item.id] ? 'Done Editing' : 'Edit Custom Field'}</span>
-                                          </Button>
-                                        </div>
+                                                
+                                                setIsEditMode(prev => ({ ...prev, [item.id]: !prev[item.id] }));
+                                                setShowAddFieldInputs(prev => ({ ...prev, [item.id]: false }));
+                                              }}
+                                              className="text-xs px-2 sm:px-3 py-1 h-7 bg-green-600 text-white hover:bg-green-700 whitespace-nowrap flex-shrink-0"
+                                            >
+                                              <Edit className="w-3 h-3 sm:mr-1" />
+                                              <span className="hidden sm:inline">{isEditMode[item.id] ? 'Done Editing' : 'Edit Custom Field'}</span>
+                                              <span className="sm:hidden">{isEditMode[item.id] ? 'Done Editing' : 'Edit Custom Field'}</span>
+                                            </Button>
+                                          </div>
+                                        )}
                                       </div>
 
                                       {/* Add Field Inputs */}
@@ -8328,76 +8339,78 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                               className="text-xs h-7"
                                             />
                                           </div>
-                                          <div className="flex gap-2">
-                                            <Button
-                                              size="sm"
-                                              onClick={async () => {
-                                                // Capture field values before clearing
-                                                const fieldNameToSave = newFieldName.trim();
-                                                const fieldValueToSave = newFieldValue.trim();
-                                                
-                                                // Clear fields immediately but keep form open for next entry
-                                                setNewFieldName('');
-                                                setNewFieldValue('');
+                                          {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                            <div className="flex gap-2">
+                                              <Button
+                                                size="sm"
+                                                onClick={async () => {
+                                                  // Capture field values before clearing
+                                                  const fieldNameToSave = newFieldName.trim();
+                                                  const fieldValueToSave = newFieldValue.trim();
+                                                  
+                                                  // Clear fields immediately but keep form open for next entry
+                                                  setNewFieldName('');
+                                                  setNewFieldValue('');
 
-                                                if (fieldNameToSave) {
-                                                  const newField = { name: fieldNameToSave, value: fieldValueToSave };
-                                                  const currentSection = selectedSection[item.id];
+                                                  if (fieldNameToSave) {
+                                                    const newField = { name: fieldNameToSave, value: fieldValueToSave };
+                                                    const currentSection = selectedSection[item.id];
 
-                                                  if (currentSection) {
-                                                    // Update technical sections with new custom field
-                                                    const updatedSections = (technicalSections[item.id] || []).map(section =>
-                                                      section.name === currentSection
-                                                        ? { ...section, customFields: [...section.customFields, newField] }
-                                                        : section
-                                                    );
+                                                    if (currentSection) {
+                                                      // Update technical sections with new custom field
+                                                      const updatedSections = (technicalSections[item.id] || []).map(section =>
+                                                        section.name === currentSection
+                                                          ? { ...section, customFields: [...section.customFields, newField] }
+                                                          : section
+                                                      );
 
-                                                    // Update local state
-                                                    setTechnicalSections(prev => ({
-                                                      ...prev,
-                                                      [item.id]: updatedSections
-                                                    }));
+                                                      // Update local state
+                                                      setTechnicalSections(prev => ({
+                                                        ...prev,
+                                                        [item.id]: updatedSections
+                                                      }));
 
-                                                    // Save to database using the same API as main save
-                                                    try {
-                                                      await fastAPI.updateEquipment(item.id, {
-                                                        technical_sections: updatedSections
-                                                      }, user?.id);
+                                                      // Save to database using the same API as main save
+                                                      try {
+                                                        await fastAPI.updateEquipment(item.id, {
+                                                          technical_sections: updatedSections
+                                                        }, user?.id);
 
-                                                      toast({
-                                                        title: "Success",
-                                                        description: "Custom field added successfully",
-                                                      });
-                                                    } catch (error) {
-                                                      console.error('Error saving custom field:', error);
-                                                      toast({
-                                                        title: "Error",
-                                                        description: "Failed to save custom field",
-                                                        variant: "destructive",
-                                                      });
+                                                        toast({
+                                                          title: "Success",
+                                                          description: "Custom field added successfully",
+                                                        });
+                                                      } catch (error) {
+                                                        console.error('Error saving custom field:', error);
+                                                        toast({
+                                                          title: "Error",
+                                                          description: "Failed to save custom field",
+                                                          variant: "destructive",
+                                                        });
+                                                      }
                                                     }
                                                   }
-                                                }
-                                              }}
-                                              className="text-xs px-3 py-1 h-6 bg-green-600 text-white hover:bg-green-700"
-                                            >
-                                              <Check className="w-3 h-3 mr-1" />
-                                              Save
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              onClick={() => {
-                                                setShowAddFieldInputs(prev => ({ ...prev, [item.id]: false }));
-                                                setNewFieldName('');
-                                                setNewFieldValue('');
-                                              }}
-                                              className="text-xs px-3 py-1 h-6"
-                                            >
-                                              <X className="w-3 h-3 mr-1" />
-                                              Cancel
-                                            </Button>
-                                          </div>
+                                                }}
+                                                className="text-xs px-3 py-1 h-6 bg-green-600 text-white hover:bg-green-700"
+                                              >
+                                                <Check className="w-3 h-3 mr-1" />
+                                                Save
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                  setShowAddFieldInputs(prev => ({ ...prev, [item.id]: false }));
+                                                  setNewFieldName('');
+                                                  setNewFieldValue('');
+                                                }}
+                                                className="text-xs px-3 py-1 h-6"
+                                              >
+                                                <X className="w-3 h-3 mr-1" />
+                                                Cancel
+                                              </Button>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
 
@@ -8478,7 +8491,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                                 ) : (
                                                   <span className="text-gray-800 font-medium text-xs sm:text-sm break-words">{field.name}: <span className="text-gray-600 font-normal">{field.value}</span></span>
                                                 )}
-                                                {isEditMode[item.id] && (
+                                                {isEditMode[item.id] && currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
                                                   <Button
                                                     size="sm"
                                                     variant="ghost"
@@ -8647,118 +8660,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                             )}
 
                             {/* Add New Team Position */}
-                            <div className="border-t pt-3">
-                              <div className="text-xs font-medium text-gray-700 mb-2">Add New Team Position:</div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <Label className="text-xs text-gray-600">Position</Label>
-                                  <Input
-                                    placeholder="e.g., Fabricator, Engineer"
-                                    value={newTeamPosition}
-                                    onChange={(e) => setNewTeamPosition(e.target.value)}
-                                    className="text-xs h-8"
-                                  />
-                                </div>
-                                <div className="relative">
-                                  <Label className="text-xs text-gray-600">Name</Label>
-                                  <div className="relative">
-                                    <Input
-                                      placeholder="Type name or select from existing users"
-                                      value={newTeamName}
-                                      onChange={(e) => {
-                                        setNewTeamName(e.target.value);
-                                        setShowTeamSuggestions(e.target.value.length > 0);
-                                      }}
-                                      onFocus={() => setShowTeamSuggestions(newTeamName.length > 0)}
-                                      className="text-xs h-8 pr-8"
-                                    />
-                                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                  {/* Team Member Suggestions Dropdown */}
-                                  {showTeamSuggestions && availableTeamMembers.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                                      <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
-                                        Select from existing users:
-                                      </div>
-                                      {availableTeamMembers
-                                        .filter(member =>
-                                          member.full_name.toLowerCase().includes(newTeamName.toLowerCase()) ||
-                                          member.email.toLowerCase().includes(newTeamName.toLowerCase())
-                                        )
-                                        .slice(0, 5)
-                                        .map((member) => (
-                                          <div
-                                            key={member.id}
-                                            onClick={() => selectTeamMember(member)}
-                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-xs border-b border-gray-100 last:border-b-0"
-                                          >
-                                            <div className="font-medium text-gray-800">{member.full_name}</div>
-                                            <div className="text-gray-500">{member.email} • {member.role}</div>
-                                          </div>
-                                        ))}
-                                      <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 border-t">
-                                        Or continue typing to add new user
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-3 gap-3 mt-3">
-                                <div>
-                                  <Label className="text-xs text-gray-600">Email</Label>
-                                  <Input
-                                    placeholder="Enter email address"
-                                    type="email"
-                                    value={newTeamEmail}
-                                    onChange={(e) => setNewTeamEmail(e.target.value)}
-                                    className="text-xs h-8"
-                                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$"
-                                    title="Please enter a valid email address"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-600">Phone</Label>
-                                  <Input
-                                    placeholder="Enter phone number"
-                                    type="tel"
-                                    value={newTeamPhone}
-                                    onChange={(e) => setNewTeamPhone(e.target.value)}
-                                    className="text-xs h-8"
-                                    pattern="[0-9]{10}"
-                                    title="Please enter a 10-digit phone number"
-                                    maxLength={10}
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-gray-600">Role</Label>
-                                  <Select
-                                    value={newTeamRole}
-                                    onValueChange={(value: 'editor' | 'viewer') => setNewTeamRole(value)}
-                                  >
-                                    <SelectTrigger className="text-xs h-8">
-                                      <SelectValue placeholder="Select role" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="viewer">Viewer</SelectItem>
-                                      <SelectItem value="editor">Editor</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => addTeamPosition(item.id)}
-                                disabled={!newTeamPosition?.trim() || !newTeamName?.trim()}
-                                className="w-full mt-2 bg-green-600 hover:bg-green-700 text-xs"
-                              >
-                                <Plus size={14} className="mr-2" />
-                                Add Team Position
-                              </Button>
-                            </div>
+                           
 
                             {/* Custom Team Positions List */}
                             {teamPositions[item.id] && teamPositions[item.id].length > 0 && (
@@ -8781,14 +8683,16 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                         <div className="text-xs text-green-600">{pos.phone}</div>
                                       )}
                                     </div>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => removeTeamPosition(item.id, pos.id)}
-                                      className="text-red-600 hover:text-red-700 p-1 h-6 w-6"
-                                    >
-                                      <X size={12} />
-                                    </Button>
+                                    {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => removeTeamPosition(item.id, pos.id)}
+                                        className="text-red-600 hover:text-red-700 p-1 h-6 w-6"
+                                      >
+                                        <X size={12} />
+                                      </Button>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -8831,6 +8735,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                              </Button> */}
 
                               {/* Manage Team button that redirects to Settings tab */}
+                              {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && currentUserRole !== 'editor' && (
                                 <Button
                                   size="sm"
                                   className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm h-7 sm:h-6 px-2 sm:px-3 whitespace-nowrap"
@@ -8854,6 +8759,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                   <Plus size={12} className="w-3 h-3 mr-1" />
                                   Manage Team
                                 </Button>
+                              )}
                               {/* <Button
                                size="sm"
                                variant="outline"
@@ -9269,39 +9175,43 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                       }}
                                       className="flex-grow text-xs h-8"
                                     />
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        if (customProgressTypeName.trim()) {
-                                          const trimmedName = customProgressTypeName.trim();
-                                          setNewProgressType(trimmedName);
-                                          setCustomProgressTypes(prev => {
-                                            if (!prev.includes(trimmedName)) {
-                                              return [...prev, trimmedName];
+                                    {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            if (customProgressTypeName.trim()) {
+                                              const trimmedName = customProgressTypeName.trim();
+                                              setNewProgressType(trimmedName);
+                                              setCustomProgressTypes(prev => {
+                                                if (!prev.includes(trimmedName)) {
+                                                  return [...prev, trimmedName];
+                                                }
+                                                return prev;
+                                              });
+                                              setIsAddingCustomProgressType(false);
+                                              setCustomProgressTypeName('');
                                             }
-                                            return prev;
-                                          });
-                                          setIsAddingCustomProgressType(false);
-                                          setCustomProgressTypeName('');
-                                        }
-                                      }}
-                                      disabled={!customProgressTypeName.trim()}
-                                      className="text-xs h-8 px-2"
-                                    >
-                                      Add
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setIsAddingCustomProgressType(false);
-                                        setCustomProgressTypeName('');
-                                        setNewProgressType('general');
-                                      }}
-                                      className="text-xs h-8 px-2"
-                                    >
-                                      Cancel
-                                    </Button>
+                                          }}
+                                          disabled={!customProgressTypeName.trim()}
+                                          className="text-xs h-8 px-2"
+                                        >
+                                          Add
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setIsAddingCustomProgressType(false);
+                                            setCustomProgressTypeName('');
+                                            setNewProgressType('general');
+                                          }}
+                                          className="text-xs h-8 px-2"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -9316,46 +9226,48 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                               </div>
 
                               {/* Audio Recording Section */}
-                              <div>
-                                <Label className="text-xs text-gray-600">Voice Message</Label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  {!isRecording ? (
-                                    <button
-                                      onClick={startAudioRecording}
-                                      className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md border border-blue-200 text-xs font-medium transition-colors"
-                                      title="Start voice recording"
-                                    >
-                                      <Mic className="w-4 h-4" />
-                                      Record Voice
-                                    </button>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
+                              {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                <div>
+                                  <Label className="text-xs text-gray-600">Voice Message</Label>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {!isRecording ? (
                                       <button
-                                        onClick={stopAudioRecording}
-                                        className="flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs font-medium transition-colors"
-                                        title="Stop recording"
+                                        onClick={startAudioRecording}
+                                        className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md border border-blue-200 text-xs font-medium transition-colors"
+                                        title="Start voice recording"
                                       >
-                                        <MicOff className="w-4 h-4" />
-                                        Stop Recording
+                                        <Mic className="w-4 h-4" />
+                                        Record Voice
                                       </button>
-                                      <div className="flex items-center gap-2 px-2 py-1 bg-red-50 rounded-md border border-red-200">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                        <span className="text-xs text-red-600 font-medium">
-                                          {formatDuration(recordingDuration)}
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={stopAudioRecording}
+                                          className="flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs font-medium transition-colors"
+                                          title="Stop recording"
+                                        >
+                                          <MicOff className="w-4 h-4" />
+                                          Stop Recording
+                                        </button>
+                                        <div className="flex items-center gap-2 px-2 py-1 bg-red-50 rounded-md border border-red-200">
+                                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                          <span className="text-xs text-red-600 font-medium">
+                                            {formatDuration(recordingDuration)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {audioChunks.length > 0 && (
+                                      <div className="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-md border border-green-200">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span className="text-xs text-green-600 font-medium">
+                                          Voice recorded ({formatDuration(recordingDuration)})
                                         </span>
                                       </div>
-                                    </div>
-                                  )}
-                                  {audioChunks.length > 0 && (
-                                    <div className="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-md border border-green-200">
-                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                      <span className="text-xs text-green-600 font-medium">
-                                        Voice recorded ({formatDuration(recordingDuration)})
-                                      </span>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                               <div>
                                 <Label className="text-xs text-gray-600">Image</Label>
                                 <div className="space-y-2">
@@ -9367,27 +9279,33 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                         alt="Existing progress image"
                                         className="w-24 h-24 object-cover rounded-lg border border-gray-200"
                                       />
-                                      <button
-                                        onClick={() => setNewProgressImage(null)}
-                                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
-                                        title="Remove image"
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </button>
+                                      {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                        <button
+                                          onClick={() => setNewProgressImage(null)}
+                                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
+                                          title="Remove image"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      )}
                                       <p className="text-xs text-gray-500 mt-1">Current image (click below to replace)</p>
                                     </div>
                                   )}
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        setNewProgressImage(file);
-                                      }
-                                    }}
-                                    className="text-xs h-8 w-full border border-gray-300 rounded px-2"
-                                  />
+                                  {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' ? (
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          setNewProgressImage(file);
+                                        }
+                                      }}
+                                      className="text-xs h-8 w-full border border-gray-300 rounded px-2"
+                                    />
+                                  ) : (
+                                    <div className="text-xs text-gray-500 italic">Image upload not available</div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -9406,51 +9324,53 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                             )}
 
                             {/* Action Buttons */}
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => addProgressEntry(item.id)}
-                                disabled={!newProgressEntry?.trim()}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs"
-                              >
-                                {editingProgressEntryId ? (
-                                  <>
-                                    <Check size={14} className="mr-2" />
-                                    Update
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plus size={14} className="mr-2" />
-                                    Add
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setNewProgressType('general');
-                                  setNewProgressEntry('');
-                                  setNewProgressImage(null);
-                                  setImageDescription('');
-                                  setEditingProgressEntryId(null);
-                                  setIsAddingCustomProgressType(false);
-                                  setCustomProgressTypeName('');
-                                  // Reset audio recording state
-                                  setAudioChunks([]);
-                                  setRecordingDuration(0);
-                                  setIsRecording(false);
-                                  // Reset image audio recording state
-                                  setImageAudioChunks([]);
-                                  setImageRecordingDuration(0);
-                                  setIsImageRecording(false);
-                                }}
-                                className="flex-1 bg-white hover:bg-gray-50 border-gray-300 text-gray-700 text-xs"
-                              >
-                                <X size={14} className="mr-2" />
-                                Cancel
-                              </Button>
-                            </div>
+                            {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => addProgressEntry(item.id)}
+                                  disabled={!newProgressEntry?.trim()}
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs"
+                                >
+                                  {editingProgressEntryId ? (
+                                    <>
+                                      <Check size={14} className="mr-2" />
+                                      Update
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus size={14} className="mr-2" />
+                                      Add
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setNewProgressType('general');
+                                    setNewProgressEntry('');
+                                    setNewProgressImage(null);
+                                    setImageDescription('');
+                                    setEditingProgressEntryId(null);
+                                    setIsAddingCustomProgressType(false);
+                                    setCustomProgressTypeName('');
+                                    // Reset audio recording state
+                                    setAudioChunks([]);
+                                    setRecordingDuration(0);
+                                    setIsRecording(false);
+                                    // Reset image audio recording state
+                                    setImageAudioChunks([]);
+                                    setImageRecordingDuration(0);
+                                    setIsImageRecording(false);
+                                  }}
+                                  className="flex-1 bg-white hover:bg-gray-50 border-gray-300 text-gray-700 text-xs"
+                                >
+                                  <X size={14} className="mr-2" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           // View Mode - Show Progress Entries
@@ -9458,33 +9378,35 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                             {/* Progress Entries List */}
                             <div className="flex flex-row items-center justify-between gap-2 mb-2">
                               <div className="text-sm font-semibold text-gray-900">Progress Entries</div>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  // console.log('➕ Add Entry button clicked for equipment:', item.id);
-                                  setAddingProgressEntryForEquipment(item.id);
-                                  setNewProgressType('general');
-                                  setNewProgressEntry('');
-                                  setNewProgressImage(null);
-                                  setImageDescription('');
-                                  setEditingProgressEntryId(null);
-                                  setIsAddingCustomProgressType(false);
-                                  setCustomProgressTypeName('');
-                                  // Reset audio recording state
-                                  setAudioChunks([]);
-                                  setRecordingDuration(0);
-                                  setIsRecording(false);
-                                  // Reset image audio recording state
-                                  setImageAudioChunks([]);
-                                  setImageRecordingDuration(0);
-                                  setIsImageRecording(false);
-                                  // console.log('🔄 Form reset for new entry');
-                                }}
-                                className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm h-7 sm:h-6 px-2 sm:px-3 whitespace-nowrap"
-                              >
-                                <Plus size={12} className="w-3 h-3 mr-1" />
-                                Add Entry
-                              </Button>
+                              {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // console.log('➕ Add Entry button clicked for equipment:', item.id);
+                                    setAddingProgressEntryForEquipment(item.id);
+                                    setNewProgressType('general');
+                                    setNewProgressEntry('');
+                                    setNewProgressImage(null);
+                                    setImageDescription('');
+                                    setEditingProgressEntryId(null);
+                                    setIsAddingCustomProgressType(false);
+                                    setCustomProgressTypeName('');
+                                    // Reset audio recording state
+                                    setAudioChunks([]);
+                                    setRecordingDuration(0);
+                                    setIsRecording(false);
+                                    // Reset image audio recording state
+                                    setImageAudioChunks([]);
+                                    setImageRecordingDuration(0);
+                                    setIsImageRecording(false);
+                                    // console.log('🔄 Form reset for new entry');
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm h-7 sm:h-6 px-2 sm:px-3 whitespace-nowrap"
+                                >
+                                  <Plus size={12} className="w-3 h-3 mr-1" />
+                                  Add Entry
+                                </Button>
+                              )}
                             </div>
                             <div className="space-y-3 max-h-[280px] sm:max-h-80 overflow-y-auto pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                 {/* New Consolidated Progress Entries */}
@@ -9554,26 +9476,28 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                           )}
                                           
                                           {/* Action Buttons */}
-                                          <div className="flex items-center gap-0.5 sm:gap-1">
-                                            <button
-                                              onClick={() => editProgressEntry(item.id, entry.id)}
-                                              className="p-1 sm:p-1.5 hover:bg-blue-50 rounded-md text-blue-600 transition-colors"
-                                              title="Edit entry"
-                                            >
-                                              <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                            </button>
-                                            <button
-                                              onClick={() => {
-                                                if (confirm('Are you sure you want to delete this progress entry?')) {
-                                                  deleteProgressEntry(item.id, entry.id);
-                                                }
-                                              }}
-                                              className="p-1 sm:p-1.5 hover:bg-red-50 rounded-md text-red-600 transition-colors"
-                                              title="Delete entry"
-                                            >
-                                              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                            </button>
-                                          </div>
+                                          {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1">
+                                              <button
+                                                onClick={() => editProgressEntry(item.id, entry.id)}
+                                                className="p-1 sm:p-1.5 hover:bg-blue-50 rounded-md text-blue-600 transition-colors"
+                                                title="Edit entry"
+                                              >
+                                                <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                              </button>
+                                              <button
+                                                onClick={() => {
+                                                  if (confirm('Are you sure you want to delete this progress entry?')) {
+                                                    deleteProgressEntry(item.id, entry.id);
+                                                  }
+                                                }}
+                                                className="p-1 sm:p-1.5 hover:bg-red-50 rounded-md text-red-600 transition-colors"
+                                                title="Delete entry"
+                                              >
+                                                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                              </button>
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
 
@@ -9702,24 +9626,26 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                             </div>
 
                             {/* Simple File Input */}
-                            <div className="mt-2">
-                              <input
-                                type="file"
-                                multiple
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.jpg,.jpeg,.png"
-                                onChange={(e) => {
-                                  // console.log('🚀 SIMPLE: File input changed!');
-                                  // console.log('🚀 SIMPLE: Files:', e.target.files);
-                                  const files = Array.from(e.target.files || []);
-                                  // console.log('🚀 SIMPLE: Files array:', files);
-                                  if (files.length > 0) {
-                                    // console.log('🚀 SIMPLE: Starting upload...');
-                                    handleDocumentUpload(item.id, files);
-                                  }
-                                }}
-                                className="w-full text-xs"
-                              />
-                            </div>
+                            {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                              <div className="mt-2">
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.jpg,.jpeg,.png"
+                                  onChange={(e) => {
+                                    // console.log('🚀 SIMPLE: File input changed!');
+                                    // console.log('🚀 SIMPLE: Files:', e.target.files);
+                                    const files = Array.from(e.target.files || []);
+                                    // console.log('🚀 SIMPLE: Files array:', files);
+                                    if (files.length > 0) {
+                                      // console.log('🚀 SIMPLE: Starting upload...');
+                                      handleDocumentUpload(item.id, files);
+                                    }
+                                  }}
+                                  className="w-full text-xs"
+                                />
+                              </div>
+                            )}
 
                             {/* Existing Equipment Documents Display */}
                             {documents[item.id] && documents[item.id]
@@ -9754,27 +9680,31 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                                           <Eye size={12} />
                                         </Button>
 
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => {
-                                            const newName = prompt('Enter document name:', doc.name);
-                                            if (newName && newName.trim()) {
-                                              handleDocumentNameChange(item.id, doc.id, newName.trim());
-                                            }
-                                          }}
-                                          className="text-green-600 hover:text-green-800 p-1 h-6 w-6"
-                                        >
-                                          <Edit size={12} />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleDeleteDocument(item.id, doc.id)}
-                                          className="text-red-600 hover:text-red-700 p-1 h-6 w-6"
-                                        >
-                                          <X size={12} />
-                                        </Button>
+                                        {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                const newName = prompt('Enter document name:', doc.name);
+                                                if (newName && newName.trim()) {
+                                                  handleDocumentNameChange(item.id, doc.id, newName.trim());
+                                                }
+                                              }}
+                                              className="text-green-600 hover:text-green-800 p-1 h-6 w-6"
+                                            >
+                                              <Edit size={12} />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => handleDeleteDocument(item.id, doc.id)}
+                                              className="text-red-600 hover:text-red-700 p-1 h-6 w-6"
+                                            >
+                                              <X size={12} />
+                                            </Button>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   ))}
@@ -9811,17 +9741,19 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                           <>
                             <div className="flex flex-row items-center justify-between gap-2 mb-2">
                               <div className="text-sm font-semibold text-gray-900">Equipment Documents</div>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  // console.log('➕ Add Document button clicked for equipment:', item.id);
-                                  setEditingEquipmentId(item.id);
-                                }}
-                                className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm h-7 sm:h-6 px-2 sm:px-3 whitespace-nowrap"
-                              >
-                                <Plus size={12} className="w-3 h-3 mr-1" />
-                                Add Document
-                              </Button>
+                              {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'viewer' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // console.log('➕ Add Document button clicked for equipment:', item.id);
+                                    setEditingEquipmentId(item.id);
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm h-7 sm:h-6 px-2 sm:px-3 whitespace-nowrap"
+                                >
+                                  <Plus size={12} className="w-3 h-3 mr-1" />
+                                  Add Document
+                                </Button>
+                              )}
                             </div>
                             <div className="max-h-[200px] sm:h-36 overflow-y-auto border border-gray-200 rounded bg-gray-50 p-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                               {(() => {
@@ -9996,78 +9928,82 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                           </Button>
                         )}
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 bg-white hover:bg-blue-50 border-blue-200 hover:border-blue-300 text-blue-700 text-xs sm:text-sm"
-                          onClick={() => {
-                            setEditingEquipmentId(item.id);
-                            const formData = {
-                              location: item.location || '',
-                              supervisor: item.supervisor || '',
-                              nextMilestone: item.nextMilestone || '',
-                              size: item.size || '',
-                              weight: item.weight || '',
-                              designCode: item.designCode || '',
-                              material: item.material || '',
-                              workingPressure: item.workingPressure || '',
-                              designTemp: item.designTemp || '',
-                              welder: item.welder || '',
-                              engineer: item.engineer || '',
-                              qcInspector: item.qcInspector || '',
-                              projectManager: item.projectManager || '',
-                              poCdd: item.poCdd || '',
-                              status: item.status || 'on-track',
-                              customFields: item.customFields || [],
-                              certificationTitle: item.certificationTitle || ''
-                            };
-                            // console.log('🔧 Setting editFormData with custom fields:', formData);
-                            setEditFormData(formData);
-                          }}
-                        >
-                          <Edit size={14} className="mr-1" />
-                          Edit
-                        </Button>
+                        {currentUserRole !== 'vdcr_manager' && currentUserRole !== 'editor' && currentUserRole !== 'viewer' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-white hover:bg-blue-50 border-blue-200 hover:border-blue-300 text-blue-700 text-xs sm:text-sm"
+                              onClick={() => {
+                                setEditingEquipmentId(item.id);
+                                const formData = {
+                                  location: item.location || '',
+                                  supervisor: item.supervisor || '',
+                                  nextMilestone: item.nextMilestone || '',
+                                  size: item.size || '',
+                                  weight: item.weight || '',
+                                  designCode: item.designCode || '',
+                                  material: item.material || '',
+                                  workingPressure: item.workingPressure || '',
+                                  designTemp: item.designTemp || '',
+                                  welder: item.welder || '',
+                                  engineer: item.engineer || '',
+                                  qcInspector: item.qcInspector || '',
+                                  projectManager: item.projectManager || '',
+                                  poCdd: item.poCdd || '',
+                                  status: item.status || 'on-track',
+                                  customFields: item.customFields || [],
+                                  certificationTitle: item.certificationTitle || ''
+                                };
+                                // console.log('🔧 Setting editFormData with custom fields:', formData);
+                                setEditFormData(formData);
+                              }}
+                            >
+                              <Edit size={14} className="mr-1" />
+                              Edit
+                            </Button>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 bg-white hover:bg-green-50 border-green-200 hover:border-green-300 text-green-700 text-xs sm:text-sm"
-                          onClick={() => handleMarkComplete(item)}
-                          disabled={loadingStates[`complete-${item.id}`]}
-                        >
-                          {loadingStates[`complete-${item.id}`] ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1"></div>
-                              Completing...
-                            </>
-                          ) : (
-                            <>
-                              <Check size={14} className="mr-1" />
-                              Complete
-                            </>
-                          )}
-                        </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-white hover:bg-green-50 border-green-200 hover:border-green-300 text-green-700 text-xs sm:text-sm"
+                              onClick={() => handleMarkComplete(item)}
+                              disabled={loadingStates[`complete-${item.id}`]}
+                            >
+                              {loadingStates[`complete-${item.id}`] ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mr-1"></div>
+                                  Completing...
+                                </>
+                              ) : (
+                                <>
+                                  <Check size={14} className="mr-1" />
+                                  Complete
+                                </>
+                              )}
+                            </Button>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 bg-white hover:bg-red-50 border-red-200 hover:border-red-300 text-red-700 text-xs sm:text-sm"
-                          onClick={() => handleDeleteEquipment(item)}
-                          disabled={loadingStates[`delete-${item.id}`]}
-                        >
-                          {loadingStates[`delete-${item.id}`] ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-1"></div>
-                              Deleting...
-                            </>
-                          ) : (
-                            <>
-                              <X size={14} className="mr-1" />
-                              Delete
-                            </>
-                          )}
-                        </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-white hover:bg-red-50 border-red-200 hover:border-red-300 text-red-700 text-xs sm:text-sm"
+                              onClick={() => handleDeleteEquipment(item)}
+                              disabled={loadingStates[`delete-${item.id}`]}
+                            >
+                              {loadingStates[`delete-${item.id}`] ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-1"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                <>
+                                  <X size={14} className="mr-1" />
+                                  Delete
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>

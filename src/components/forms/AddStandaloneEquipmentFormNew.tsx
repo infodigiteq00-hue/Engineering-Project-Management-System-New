@@ -153,6 +153,121 @@ const AddStandaloneEquipmentFormNew = ({ onClose, onSubmit }: AddStandaloneEquip
   
   // Store Equipment Manager contact details (name -> {email, phone})
   const [equipmentManagerContacts, setEquipmentManagerContacts] = useState<Record<string, { email: string; phone: string }>>({});
+  
+  // Store project managers for Equipment Manager field
+  const [projectManagers, setProjectManagers] = useState<Array<{ name: string; email: string; phone: string }>>([]);
+
+  // Fetch existing standalone equipment to populate suggestions
+  useEffect(() => {
+    const fetchExistingStandaloneEquipment = async () => {
+      try {
+        // Get current user's firm_id
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        const firmId = userData.firm_id;
+        
+        if (!firmId) {
+          return;
+        }
+
+        // Fetch standalone equipment from Supabase
+        const existingEquipment = await fastAPI.getStandaloneEquipment();
+        
+        if (existingEquipment && Array.isArray(existingEquipment) && existingEquipment.length > 0) {
+          
+          // Extract unique values from existing standalone equipment
+          const uniqueClients = [...new Set(existingEquipment.map((eq: any) => eq.client_name).filter(Boolean))];
+          const uniqueLocations = [...new Set(existingEquipment.map((eq: any) => eq.plant_location).filter(Boolean))];
+          const uniqueIndustries = [...new Set(existingEquipment.map((eq: any) => eq.client_industry).filter(Boolean))];
+          const uniqueConsultants = [...new Set(existingEquipment.map((eq: any) => eq.consultant).filter(Boolean))];
+          const uniqueTpiAgencies = [...new Set(existingEquipment.map((eq: any) => eq.tpi_agency).filter(Boolean))];
+          
+          // Extract equipment managers from equipment_manager field in standalone_equipment table
+          const uniqueEquipmentManagersFromEquipment = [...new Set(existingEquipment.map((eq: any) => eq.equipment_manager).filter(Boolean))];
+          
+          // Standard industry options (always available)
+          const standardIndustries = ['Petrochemical', 'Steel', 'Refinery', 'Marine', 'Power', 'Pharmaceutical', 'Chemical', 'Oil & Gas'];
+          
+          // Update dynamic options with existing data (excluding equipmentManager for now, will add after fetching from team_positions)
+          setDynamicOptions(prev => ({
+            ...prev,
+            clientName: uniqueClients,
+            plantLocation: uniqueLocations,
+            clientIndustry: [...new Set([...standardIndustries, ...uniqueIndustries])],
+            consultant: uniqueConsultants,
+            tpiAgency: uniqueTpiAgencies
+          }));
+          
+          // Fetch equipment managers from standalone_equipment_team_positions
+          try {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const supabase = createClient(supabaseUrl, supabaseKey);
+            
+            // Fetch team positions where position_name is 'Equipment Manager'
+            const { data: teamPositions, error } = await supabase
+              .from('standalone_equipment_team_positions')
+              .select('person_name, email, phone')
+              .eq('position_name', 'Equipment Manager');
+            
+            if (error) {
+              console.error('❌ Error fetching equipment managers:', error);
+            }
+            
+            // Combine equipment managers from both sources:
+            // 1. From equipment_manager field in standalone_equipment table
+            // 2. From standalone_equipment_team_positions table
+            const equipmentManagersFromTeamPositions = teamPositions && teamPositions.length > 0 
+              ? [...new Set(teamPositions.map((tp: any) => tp.person_name).filter(Boolean))]
+              : [];
+            
+            // Combine both sources and remove duplicates
+            const allEquipmentManagers = [...new Set([...uniqueEquipmentManagersFromEquipment, ...equipmentManagersFromTeamPositions])];
+            
+            // Update dynamic options with combined equipment managers
+            setDynamicOptions(prev => ({
+              ...prev,
+              equipmentManager: allEquipmentManagers
+            }));
+            
+            // Store contact details for equipment managers from team_positions
+            const managerContacts: Record<string, { email: string; phone: string }> = {};
+            const managersList: Array<{ name: string; email: string; phone: string }> = [];
+            
+            if (teamPositions && teamPositions.length > 0) {
+              teamPositions.forEach((tp: any) => {
+                if (tp.person_name && tp.email) {
+                  managerContacts[tp.person_name] = {
+                    email: tp.email || '',
+                    phone: tp.phone || ''
+                  };
+                  managersList.push({
+                    name: tp.person_name,
+                    email: tp.email || '',
+                    phone: tp.phone || ''
+                  });
+                }
+              });
+            }
+            
+            setEquipmentManagerContacts(managerContacts);
+            setProjectManagers(managersList);
+          } catch (error) {
+            console.error('❌ Error fetching equipment managers:', error);
+            // Even if team_positions fetch fails, still use equipment_manager field values
+            setDynamicOptions(prev => ({
+              ...prev,
+              equipmentManager: uniqueEquipmentManagersFromEquipment
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error fetching existing standalone equipment:', error);
+      }
+    };
+
+    fetchExistingStandaloneEquipment();
+  }, []);
 
   const handleInputChange = (field: keyof StandaloneEquipmentFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));

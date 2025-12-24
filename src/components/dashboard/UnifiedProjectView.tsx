@@ -42,8 +42,7 @@ const UnifiedProjectView = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState(
-    userRole === 'vdcr_manager' && initialTab === 'equipment' ? 'vdcr' : initialTab
-  );
+    initialTab);
 
   // Listen for navigation events from child components
   useEffect(() => {
@@ -1034,18 +1033,16 @@ const UnifiedProjectView = ({
         {/* Unified Tabbed Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto overflow-y-hidden xl:overflow-x-visible xl:overflow-y-visible mb-16 scroll-smooth p-1">
-            <TabsList className={`flex xl:grid min-w-max xl:w-full bg-transparent rounded-2xl p-2 ${userRole === 'vdcr_manager' ? 'xl:grid-cols-3' : 'xl:grid-cols-6'} gap-2 flex-nowrap`}>
-            {userRole !== 'vdcr_manager' && (
-              <TabsTrigger 
-                value="equipment" 
-                className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-blue-600 data-[state=active]:hover:to-blue-700 flex-shrink-0"
-              >
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                  <Building size={20} className="text-blue-600 data-[state=active]:text-white" />
-                </div>
-                <span>Equipment</span>
-              </TabsTrigger>
-            )}
+            <TabsList className={`flex xl:grid min-w-max xl:w-full bg-transparent rounded-2xl p-2 ${(userRole === 'vdcr_manager' || userRole === 'editor') ? 'xl:grid-cols-4' : userRole === 'viewer' ? 'xl:grid-cols-5' : 'xl:grid-cols-6'} gap-2 flex-nowrap`}>
+            <TabsTrigger 
+              value="equipment" 
+              className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-blue-600 data-[state=active]:hover:to-blue-700 flex-shrink-0"
+            >
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                <Building size={20} className="text-blue-600 data-[state=active]:text-white" />
+              </div>
+              <span>Equipment</span>
+            </TabsTrigger>
             
             <TabsTrigger 
               value="vdcr" 
@@ -1077,7 +1074,7 @@ const UnifiedProjectView = ({
               <span>Project Chronology</span>
             </TabsTrigger>
             
-            {userRole !== 'vdcr_manager' && (
+            {userRole !== 'vdcr_manager' && userRole !== 'editor' && (
               <TabsTrigger 
                 value="project-details" 
                 className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-orange-600 data-[state=active]:hover:to-orange-700 flex-shrink-0"
@@ -1089,7 +1086,7 @@ const UnifiedProjectView = ({
               </TabsTrigger>
             )}
 
-            {userRole !== 'vdcr_manager' && (
+            {userRole !== 'vdcr_manager' && userRole !== 'editor' && userRole !== 'viewer' && (
               <TabsTrigger 
                 value="settings" 
                 className="flex items-center gap-3 px-4 py-4 text-sm font-semibold bg-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-500 data-[state=active]:to-gray-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:scale-105 transition-all duration-300 rounded-xl hover:bg-gray-200 data-[state=active]:hover:from-gray-600 data-[state=active]:hover:to-gray-700 flex-shrink-0"
@@ -1104,8 +1101,7 @@ const UnifiedProjectView = ({
           </div>
 
           {/* Equipment Tab */}
-          {userRole !== 'vdcr_manager' && (
-            <TabsContent value="equipment" className="space-y-6 mt-8">
+          <TabsContent value="equipment" className="space-y-6 mt-8">
             <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-blue-200">
                 <h2 className="text-xl font-semibold text-blue-800 flex items-center gap-2">
@@ -1134,7 +1130,6 @@ const UnifiedProjectView = ({
               </div>
             </div>
           </TabsContent>
-          )}
 
           {/* VDCR Tab */}
           <TabsContent value="vdcr" className="space-y-4 sm:space-y-6 mt-6 sm:mt-8">
@@ -2130,7 +2125,7 @@ const UnifiedProjectView = ({
           </TabsContent>
 
           {/* Project Details Tab */}
-          {userRole !== 'vdcr_manager' && (
+          {userRole !== 'vdcr_manager' && userRole !== 'editor' && (
             <TabsContent value="project-details" className="space-y-6 mt-8">
             <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 border-b border-orange-200">
@@ -2157,7 +2152,7 @@ const UnifiedProjectView = ({
           )}
 
           {/* Settings Tab */}
-          {userRole !== 'vdcr_manager' && (
+          {userRole !== 'vdcr_manager' && userRole !== 'editor' && userRole !== 'viewer' && (
       <TabsContent value="settings" className="space-y-6 mt-8">
         <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
