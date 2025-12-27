@@ -763,7 +763,7 @@ const StandaloneEquipmentCard: React.FC<StandaloneEquipmentCardProps> = (props) 
                       <Select
                         value={item.progressPhase}
                         onValueChange={(value) => handleProgressPhaseChange(item.id, value as 'documentation' | 'manufacturing' | 'testing' | 'dispatched')}
-                        disabled={loadingStates[`phase-${item.id}`]}
+                        disabled={loadingStates[`phase-${item.id}`] || currentUserRole === 'editor' || currentUserRole === 'viewer'}
                       >
                         <SelectTrigger className="w-28 sm:w-32 md:w-36 h-7 text-xs">
                           <SelectValue />

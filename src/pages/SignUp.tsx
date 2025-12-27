@@ -84,47 +84,146 @@ const SignUp = () => {
         // });
 
         // 🆕 NEW: Check invites table FIRST for pending invitations
-        // console.log('🔍 Step 1: Checking invites table for pending invitation...');
+        console.log('🔍 Step 1: Checking invites table for pending invitation...');
         let inviteData = null;
         try {
           inviteData = await fastAPI.getInviteByEmail(formData.email);
-          // console.log('🔍 Invite check result:', inviteData);
+          console.log('🔍 Invite check result:', inviteData);
         } catch (inviteError) {
           console.log('⚠️ Error checking invites, will use fallback logic:', inviteError);
         }
 
         // If invite found, use that data and skip other checks
-        if (inviteData) {
-          // console.log('✅ Found valid invitation! Using role from invite:', inviteData.role);
+        if (inviteData && inviteData.role) {
+          // ✅ Validate invite data
+          if (!inviteData.role) {
+            console.error('❌ Invite found but missing role!', inviteData);
+            setError('Invalid invitation: missing role. Please contact support.');
+            setLoading(false);
+            return;
+          }
+          console.log('✅ Found valid invitation! Using invite data:', {
+            role: inviteData.role,
+            firm_id: inviteData.firm_id,
+            project_id: inviteData.project_id
+          });
           
+          // ✅ ALWAYS use invite data (this is the source of truth)
           const userRole = inviteData.role;
           const firmId = inviteData.firm_id;
           const projectId = inviteData.project_id;
           const assignedBy = inviteData.invited_by;
 
-          // Create user with role from invite
-          // console.log('🆕 Creating new user with invite data...');
-          const { data: profileData, error: profileError } = await supabase
+          // 🔧 FIX: Check if user already exists (to handle ID mismatches)
+          const { data: existingUserByEmail, error: existingUserError } = await (supabase
             .from('users')
-            .insert([
-              {
-                id: data.user.id,
-                email: formData.email,
-                full_name: formData.fullName,
-                role: userRole,
-                firm_id: firmId,
-                project_id: projectId,
-                assigned_by: assignedBy,
-                is_active: true
-              }
-            ])
-            .select();
+            .select('id, role, firm_id, project_id, assigned_by')
+            .eq('email', formData.email)
+            .maybeSingle() as unknown as Promise<any>);
 
-          if (profileError) {
-            console.error('❌ Error creating user profile:', profileError);
-            setError(`Profile creation failed: ${profileError.message}`);
-            setLoading(false);
-            return;
+          if (existingUserByEmail && !existingUserError) {
+            console.log('⚠️ User already exists. Existing data:', {
+              id: (existingUserByEmail as any).id,
+              role: (existingUserByEmail as any).role,
+              firm_id: (existingUserByEmail as any).firm_id
+            });
+            console.log('✅ Will use INVITE data (not existing user data):', {
+              role: userRole,
+              firm_id: firmId
+            });
+            
+            // User exists - check for ID mismatch
+            if ((existingUserByEmail as any).id === data.user.id) {
+              // ✅ ID matches - update with INVITE data (not existing user data)
+              console.log('✅ User exists with correct Auth ID, updating with INVITE data...');
+              const { data: updateData, error: updateError } = await supabase
+                .from('users')
+                .update({
+                  full_name: formData.fullName,
+                  role: userRole, // ✅ Use invite role, not existing role
+                  firm_id: firmId, // ✅ Use invite firm_id, not existing firm_id
+                  project_id: projectId,
+                  assigned_by: assignedBy,
+                  is_active: true
+                } as any)
+                .eq('id', data.user.id)
+                .select();
+
+              if (updateError) {
+                console.error('❌ Error updating user profile:', updateError);
+                setError(`Profile update failed: ${updateError.message}`);
+                setLoading(false);
+                return;
+              }
+              console.log('✅ User updated with invite data:', updateData);
+              // Continue with project_members update below
+            } else {
+              // ❌ ID MISMATCH: Delete old record and create new one with INVITE data
+              console.log('⚠️ ID mismatch detected in invite path. Replacing user record with INVITE data...');
+              const { error: deleteError } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', (existingUserByEmail as any).id);
+              
+              if (deleteError) {
+                console.error('❌ Error deleting old user record:', deleteError);
+                setError(`Failed to sync user ID: ${deleteError.message}`);
+                setLoading(false);
+                return;
+              }
+              
+              // Create new record with correct Auth ID and INVITE data
+              const { data: profileData, error: profileError } = await supabase
+                .from('users')
+                .insert([
+                  {
+                    id: data.user.id, // ✅ Use Auth ID
+                    email: formData.email,
+                    full_name: formData.fullName,
+                    role: userRole, // ✅ Use invite role
+                    firm_id: firmId, // ✅ Use invite firm_id
+                    project_id: projectId,
+                    assigned_by: assignedBy,
+                    is_active: true
+                  }
+                ])
+                .select();
+
+              if (profileError) {
+                console.error('❌ Error creating user profile:', profileError);
+                setError(`Profile creation failed: ${profileError.message}`);
+                setLoading(false);
+                return;
+              }
+              console.log('✅ User created with invite data:', profileData);
+              // Continue with project_members update below
+            }
+          } else {
+            // User doesn't exist - create new user with INVITE data
+            console.log('🆕 Creating new user with invite data...');
+            const { data: profileData, error: profileError } = await supabase
+              .from('users')
+              .insert([
+                {
+                  id: data.user.id,
+                  email: formData.email,
+                  full_name: formData.fullName,
+                  role: userRole, // ✅ Use invite role
+                  firm_id: firmId, // ✅ Use invite firm_id
+                  project_id: projectId,
+                  assigned_by: assignedBy,
+                  is_active: true
+                }
+              ])
+              .select();
+
+            if (profileError) {
+              console.error('❌ Error creating user profile:', profileError);
+              setError(`Profile creation failed: ${profileError.message}`);
+              setLoading(false);
+              return;
+            }
+            console.log('✅ User created with invite data:', profileData);
           }
 
           // console.log('✅ User created successfully with invite role:', profileData);
@@ -174,28 +273,28 @@ const SignUp = () => {
         }
 
         // 🔄 EXISTING LOGIC: If no invite found, proceed with existing checks
-        // console.log('ℹ️ No invite found, checking existing user/project_members tables...');
+        console.log('ℹ️ No invite found (or invite missing role), checking existing user/project_members tables...');
         
         // Check if user was invited by checking project_members table for existing role assignment
-        // console.log('🔍 Checking if user was invited and has assigned role...');
-        // console.log('🔍 Searching for email:', formData.email);
+        console.log('🔍 Checking if user was invited and has assigned role...');
+        console.log('🔍 Searching for email:', formData.email);
         
         // First check users table
         const { data: existingUserData, error: existingUserError } = await supabase
           .from('users')
           .select('id, role, firm_id, project_id, assigned_by')
           .eq('email', formData.email)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid errors if user doesn't exist
           
         // Then check project_members table for invited users
         const { data: projectMemberData, error: projectMemberError } = await supabase
           .from('project_members')
           .select('role, project_id, user_id')
           .eq('email', formData.email)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid errors if not found
           
-        // console.log('🔍 Existing user query result:', { existingUserData, existingUserError });
-        // console.log('🔍 Project member query result:', { projectMemberData, projectMemberError });
+        console.log('🔍 Existing user query result:', { existingUserData, existingUserError });
+        console.log('🔍 Project member query result:', { projectMemberData, projectMemberError });
 
         let userRole = null; // No default - must come from backend
         let firmId = null;
@@ -203,7 +302,11 @@ const SignUp = () => {
         let assignedBy = null;
 
         if (existingUserData && !existingUserError) {
-          // console.log('✅ User was invited! Found existing role assignment:', existingUserData);
+          console.log('✅ User exists! Found existing data:', {
+            id: existingUserData.id,
+            role: existingUserData.role,
+            firm_id: existingUserData.firm_id
+          });
           userRole = existingUserData.role;
           firmId = existingUserData.firm_id;
           projectId = existingUserData.project_id;
@@ -241,30 +344,113 @@ const SignUp = () => {
 
         // Update or create user with proper role assignment
         if (existingUserData && !existingUserError) {
-          // console.log('✅ User already exists with role assignment, updating with auth ID...');
-          // Update existing user with auth ID
-          const { data: updateData, error: updateError } = await supabase
-            .from('users')
-            .update({
-              id: data.user.id, // Update with auth user ID
-              full_name: formData.fullName,
-              is_active: true,
-              role: userRole,
-              firm_id: firmId,
-              project_id: projectId,
-              assigned_by: assignedBy
-            } as any)
-            .eq('email', formData.email)
-            .select();
+          // 🔧 FIX: Check if the existing user has the correct Auth ID
+          if (existingUserData.id === data.user.id) {
+            // ✅ User already has correct Auth ID, just update other fields
+            // console.log('✅ User already exists with correct Auth ID, updating profile...');
+            const { data: updateData, error: updateError } = await supabase
+              .from('users')
+              .update({
+                full_name: formData.fullName,
+                is_active: true,
+                role: userRole,
+                firm_id: firmId,
+                project_id: projectId,
+                assigned_by: assignedBy
+              } as any)
+              .eq('id', data.user.id) // Use ID, not email (more reliable)
+              .select();
 
-          if (updateError) {
-            console.error('❌ Error updating user:', updateError);
-            setError(`Failed to update user profile: ${updateError.message}`);
-            setLoading(false);
-            return;
+            if (updateError) {
+              console.error('❌ Error updating user:', updateError);
+              setError(`Failed to update user profile: ${updateError.message}`);
+              setLoading(false);
+              return;
+            }
+
+            // console.log('✅ User updated successfully:', updateData);
+          } else {
+            // ❌ ID MISMATCH: User exists with wrong ID (auto-generated UUID instead of Auth ID)
+            // This happens when users were created before the code explicitly set id: data.user.id
+            console.log('⚠️ ID mismatch detected! Existing user ID:', existingUserData.id, 'Auth ID:', data.user.id);
+            console.log('🔄 Replacing user record with correct Auth ID...');
+            
+            // First, check if a user with the Auth ID already exists (shouldn't happen, but safety check)
+            const { data: authIdUser, error: authIdCheckError } = await supabase
+              .from('users')
+              .select('id')
+              .eq('id', data.user.id)
+              .maybeSingle();
+            
+            if (authIdUser && !authIdCheckError) {
+              // User with Auth ID already exists - this is unexpected
+              console.error('❌ User with Auth ID already exists! This should not happen.');
+              setError('Account synchronization error. Please contact support.');
+              setLoading(false);
+              return;
+            }
+            
+            // Delete the old user record with wrong ID
+            const { error: deleteError } = await supabase
+              .from('users')
+              .delete()
+              .eq('id', existingUserData.id);
+            
+            if (deleteError) {
+              console.error('❌ Error deleting old user record:', deleteError);
+              setError(`Failed to sync user ID: ${deleteError.message}. Please contact support.`);
+              setLoading(false);
+              return;
+            }
+            
+            console.log('✅ Old user record deleted. Creating new record with correct Auth ID...');
+            
+            // Create new record with correct Auth ID
+            const { data: profileData, error: profileError } = await supabase
+              .from('users')
+              .insert([
+                {
+                  id: data.user.id, // ✅ Use Auth ID (this is the fix)
+                  email: formData.email,
+                  full_name: formData.fullName,
+                  role: userRole,
+                  firm_id: firmId,
+                  project_id: projectId,
+                  assigned_by: assignedBy,
+                  is_active: true
+                }
+              ])
+              .select();
+            
+            if (profileError) {
+              console.error('❌ Error creating user profile with correct ID:', profileError);
+              setError(`Profile creation failed: ${profileError.message}. Please contact support.`);
+              setLoading(false);
+              return;
+            }
+            
+            console.log('✅ User record replaced with correct Auth ID:', profileData);
+            
+            // Also update project_members table if project_id exists
+            if (projectId) {
+              try {
+                // Update project_members to use the correct user_id
+                const { error: linkError } = await supabase
+                  .from('project_members')
+                  .update({ user_id: data.user.id })
+                  .eq('email', formData.email)
+                  .eq('project_id', projectId);
+                
+                if (linkError) {
+                  console.log('⚠️ Could not update project_members user_id:', linkError);
+                } else {
+                  console.log('✅ project_members updated with correct user_id');
+                }
+              } catch (linkError) {
+                console.log('⚠️ Error updating project_members:', linkError);
+              }
+            }
           }
-
-          // console.log('✅ User updated successfully with auth ID:', updateData);
         } else {
           console.log('🆕 Creating new user profile...');
           // Create new user

@@ -352,8 +352,6 @@ export class DatabaseService {
 
   static async getStandaloneTeamPositions(equipmentId: string) {
     try {
-      console.log('🔍 getStandaloneTeamPositions: Fetching for equipment:', equipmentId);
-      
       // Use REST API directly to avoid hanging issues with Supabase client
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
       const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -378,22 +376,12 @@ export class DatabaseService {
       }
       
       const data = await response.json();
-      console.log('📊 getStandaloneTeamPositions: Supabase response received');
-      console.log('   - data:', data);
-      console.log('   - data type:', typeof data);
-      console.log('   - data is array:', Array.isArray(data));
-      console.log('   - data length:', data?.length);
       
       // Return empty array if no data
       const result = Array.isArray(data) ? data : (data ? [data] : []);
-      console.log('✅ getStandaloneTeamPositions: Returning', result.length, 'members');
-      console.log('   - Members:', result);
       return result;
     } catch (error: any) {
-      console.error('❌ Error in getStandaloneTeamPositions (catch block):', error);
-      console.error('   - Error type:', typeof error);
-      console.error('   - Error message:', error?.message);
-      console.error('   - Error:', error);
+      console.error('❌ Error in getStandaloneTeamPositions:', error?.message || error);
       
       // Return empty array on error instead of throwing
       return [];

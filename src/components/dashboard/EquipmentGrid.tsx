@@ -157,6 +157,17 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
     }
   }, [viewingEquipmentId, projectId]);
 
+  // Refs to prevent infinite loops and concurrent calls
+  const isFetchingTeamMembersRef = useRef(false);
+  const lastFetchedEquipmentIdRef = useRef<string | null>(null);
+  const lastFetchTimestampRef = useRef<number>(0);
+  const allEquipmentTeamMembersCacheRef = useRef<Record<string, any[]>>({});
+
+  // Sync cache ref with state
+  useEffect(() => {
+    allEquipmentTeamMembersCacheRef.current = allEquipmentTeamMembers;
+  }, [allEquipmentTeamMembers]);
+
   // Fetch team members for the viewing equipment
   const fetchEquipmentTeamMembers = useCallback(async () => {
     if (!viewingEquipmentId || projectId !== 'standalone') {
@@ -164,11 +175,27 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
       return;
     }
     
-    // OPTIMIZATION: Check cache first - use cached data immediately if available
-    const hasCachedData = allEquipmentTeamMembers[viewingEquipmentId] && allEquipmentTeamMembers[viewingEquipmentId].length > 0;
+    // Prevent concurrent calls - if already fetching, skip
+    if (isFetchingTeamMembersRef.current) {
+      devLog('⏭️ Already fetching team members, skipping duplicate call');
+      return;
+    }
+    
+    // Prevent rapid successive calls for the same equipment
+    if (lastFetchedEquipmentIdRef.current === viewingEquipmentId) {
+      const timeSinceLastFetch = Date.now() - lastFetchTimestampRef.current;
+      if (timeSinceLastFetch < 1000) { // Wait at least 1 second between fetches for same equipment
+        devLog('⏭️ Too soon to refetch team members, skipping');
+        return;
+      }
+    }
+    
+    // Check cache first using ref to avoid dependency
+    const cachedData = allEquipmentTeamMembersCacheRef.current[viewingEquipmentId];
+    const hasCachedData = cachedData && cachedData.length > 0;
     if (hasCachedData) {
       devLog('⚡ Using cached team members for equipment:', viewingEquipmentId);
-      setTeamMembers(allEquipmentTeamMembers[viewingEquipmentId]);
+      setTeamMembers(cachedData);
       setTeamMembersLoading(false);
       // Still fetch in background to ensure data is fresh, but don't show loading
     } else {
@@ -176,6 +203,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
     }
     
     try {
+      isFetchingTeamMembersRef.current = true;
       devLog('🔄 Fetching team members for equipment:', viewingEquipmentId);
       // For standalone equipment, get team members from standalone_equipment_team_positions table
       const { DatabaseService } = await import('@/lib/database');
@@ -206,21 +234,28 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
           ...prev,
           [viewingEquipmentId]: transformedMembers
         }));
+        lastFetchedEquipmentIdRef.current = viewingEquipmentId;
+        (lastFetchedEquipmentIdRef.current as any).timestamp = Date.now();
       }
       devLog('✅ Team members state updated, count:', transformedMembers.length);
+      // Update timestamp
+      lastFetchedEquipmentIdRef.current = viewingEquipmentId;
+      lastFetchTimestampRef.current = Date.now();
     } catch (error) {
       devError('❌ Error fetching equipment team members:', error);
-      // If we have cached data, use it instead of showing empty
-      if (hasCachedData) {
+      // Check cache on error using ref
+      const cachedData = allEquipmentTeamMembersCacheRef.current[viewingEquipmentId];
+      if (cachedData && cachedData.length > 0) {
         devLog('⚡ Using cached team members due to fetch error');
-        setTeamMembers(allEquipmentTeamMembers[viewingEquipmentId]);
+        setTeamMembers(cachedData);
       } else {
-      setTeamMembers([]);
+        setTeamMembers([]);
       }
     } finally {
+      isFetchingTeamMembersRef.current = false;
       setTeamMembersLoading(false);
     }
-  }, [viewingEquipmentId, projectId, allEquipmentTeamMembers]);
+  }, [viewingEquipmentId, projectId]);
 
   // Helper function for permissions
   const getPermissionsByRole = (role: string) => {
@@ -315,10 +350,15 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
   // Load logs and team members when viewing equipment details
   useEffect(() => {
     if (viewingEquipmentId && projectId === 'standalone') {
-      loadEquipmentActivityLogs();
-      fetchEquipmentTeamMembers();
+      // Only fetch if equipment ID actually changed
+      if (lastFetchedEquipmentIdRef.current !== viewingEquipmentId) {
+        loadEquipmentActivityLogs();
+        fetchEquipmentTeamMembers();
+      }
     }
-  }, [viewingEquipmentId, projectId, loadEquipmentActivityLogs, fetchEquipmentTeamMembers]);
+    // Intentionally exclude fetchEquipmentTeamMembers to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingEquipmentId, projectId, loadEquipmentActivityLogs]);
 
   // Fetch existing firm members when add member modal opens
   useEffect(() => {
@@ -388,13 +428,17 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
       // Team members are now fetched immediately when viewingEquipmentId changes (see useEffect above)
       // No need to fetch again here - just refresh if needed
       if (equipmentDetailsTab === 'settings' || equipmentDetailsTab === 'team') {
-        // Only refresh if we don't have cached data
-        if (!allEquipmentTeamMembers[viewingEquipmentId] || allEquipmentTeamMembers[viewingEquipmentId].length === 0) {
+        // Only refresh if we don't have cached data and not already fetching
+        const cachedData = allEquipmentTeamMembersCacheRef.current[viewingEquipmentId];
+        const hasCachedData = cachedData && cachedData.length > 0;
+        if (!hasCachedData && !isFetchingTeamMembersRef.current) {
           fetchEquipmentTeamMembers();
         }
       }
     }
-  }, [viewingEquipmentId, projectId, equipmentDetailsTab, loadEquipmentProgressEntries, fetchEquipmentTeamMembers, allEquipmentTeamMembers]);
+    // Intentionally exclude fetchEquipmentTeamMembers and allEquipmentTeamMembers to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingEquipmentId, projectId, equipmentDetailsTab, loadEquipmentProgressEntries]);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -7297,7 +7341,9 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
         <div className="relative">
           <Input
             type="text"
-            placeholder="Search by equipment name, tag number, job number, or MSN..."
+            placeholder={projectId === 'standalone' 
+              ? "Search by MASN No, Job No, Tag No, Equipment Name, PO No, or any Personal Title..."
+              : "Search by equipment name, tag number, job number, or MSN..."}
             className="h-9 sm:h-10 text-xs sm:text-sm pr-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -7394,26 +7440,40 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
             {(() => {
               // Filter and sort equipment (same logic as before)
               const filteredAndSorted = localEquipment
-            .filter(eq => {
-              // Phase filter
-              const phaseMatch = selectedPhase === 'all' ? true : eq.progressPhase === selectedPhase;
-              
-              // Search filter
-              if (!phaseMatch) return false;
-              
-              if (searchQuery.trim()) {
-                const searchLower = searchQuery.toLowerCase();
-                const matchesSearch = 
-                  (eq.type || '').toLowerCase().includes(searchLower) ||
-                  (eq.name || '').toLowerCase().includes(searchLower) ||
-                  (eq.tagNumber || '').toLowerCase().includes(searchLower) ||
-                  (eq.jobNumber || '').toLowerCase().includes(searchLower) ||
-                  (eq.manufacturingSerial || '').toLowerCase().includes(searchLower);
-                return matchesSearch;
-              }
-              
-              return true;
-            })
+              .filter(eq => {
+                // Phase filter
+                const phaseMatch = selectedPhase === 'all' ? true : eq.progressPhase === selectedPhase;
+                
+                // Search filter
+                if (!phaseMatch) return false;
+                
+                if (searchQuery.trim()) {
+                  const searchLower = searchQuery.toLowerCase().trim();
+                  
+                  // Basic fields (common for both project and standalone equipment)
+                  const matchesSearch = 
+                    (eq.type || '').toLowerCase().includes(searchLower) ||
+                    (eq.name || '').toLowerCase().includes(searchLower) ||
+                    (eq.tagNumber || '').toLowerCase().includes(searchLower) ||
+                    (eq.jobNumber || '').toLowerCase().includes(searchLower) ||
+                    (eq.manufacturingSerial || '').toLowerCase().includes(searchLower) ||
+                    // Additional fields for standalone equipment
+                    (projectId === 'standalone' && (
+                      (eq.clientName || '').toLowerCase().includes(searchLower) ||
+                      (eq.poNumber || '').toLowerCase().includes(searchLower) ||
+                      (eq.plantLocation || '').toLowerCase().includes(searchLower) ||
+                      (eq.equipmentManager || '').toLowerCase().includes(searchLower) ||
+                      (eq.clientFocalPoint || '').toLowerCase().includes(searchLower) ||
+                      (eq.consultant || '').toLowerCase().includes(searchLower) ||
+                      (eq.tpiAgency || '').toLowerCase().includes(searchLower) ||
+                      (eq.certificationTitle || '').toLowerCase().includes(searchLower)
+                    ));
+                  
+                  return matchesSearch;
+                }
+                
+                return true;
+              })
             .sort((a, b) => {
               // Sort by lastUpdate date (descending - latest first)
               if (a.lastUpdate && b.lastUpdate) {
@@ -7943,7 +8003,7 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                       <Select
                         value={item.progressPhase}
                         onValueChange={(value) => handleProgressPhaseChange(item.id, value as 'documentation' | 'manufacturing' | 'testing' | 'dispatched')}
-                        disabled={loadingStates[`phase-${item.id}`]}
+                        disabled={loadingStates[`phase-${item.id}`] || currentUserRole === 'editor' || currentUserRole === 'viewer'}
                       >
                         <SelectTrigger className="w-28 sm:w-32 md:w-36 h-7 text-xs">
                           <SelectValue />
@@ -10020,12 +10080,28 @@ const EquipmentGrid = ({ equipment, projectName, projectId, onBack, onViewDetail
                 const phaseMatch = selectedPhase === 'all' ? true : eq.progressPhase === selectedPhase;
                 if (!phaseMatch) return false;
                 if (searchQuery.trim()) {
-                  const searchLower = searchQuery.toLowerCase();
-                  return (eq.type || '').toLowerCase().includes(searchLower) ||
+                  const searchLower = searchQuery.toLowerCase().trim();
+                  
+                  // Basic fields (common for both project and standalone equipment)
+                  const matchesSearch = 
+                    (eq.type || '').toLowerCase().includes(searchLower) ||
                     (eq.name || '').toLowerCase().includes(searchLower) ||
                     (eq.tagNumber || '').toLowerCase().includes(searchLower) ||
                     (eq.jobNumber || '').toLowerCase().includes(searchLower) ||
-                    (eq.manufacturingSerial || '').toLowerCase().includes(searchLower);
+                    (eq.manufacturingSerial || '').toLowerCase().includes(searchLower) ||
+                    // Additional fields for standalone equipment
+                    (projectId === 'standalone' && (
+                      (eq.clientName || '').toLowerCase().includes(searchLower) ||
+                      (eq.poNumber || '').toLowerCase().includes(searchLower) ||
+                      (eq.plantLocation || '').toLowerCase().includes(searchLower) ||
+                      (eq.equipmentManager || '').toLowerCase().includes(searchLower) ||
+                      (eq.clientFocalPoint || '').toLowerCase().includes(searchLower) ||
+                      (eq.consultant || '').toLowerCase().includes(searchLower) ||
+                      (eq.tpiAgency || '').toLowerCase().includes(searchLower) ||
+                      (eq.certificationTitle || '').toLowerCase().includes(searchLower)
+                    ));
+                  
+                  return matchesSearch;
                 }
                 return true;
               })

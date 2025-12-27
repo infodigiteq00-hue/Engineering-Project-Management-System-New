@@ -18,10 +18,19 @@ const StandaloneEquipmentLogsTab: React.FC<StandaloneEquipmentLogsTabProps> = ({
   const [isLoadingEquipmentLogs, setIsLoadingEquipmentLogs] = useState(false);
   const [equipmentSearchQuery, setEquipmentSearchQuery] = useState('');
 
+  const isLoadingRef = useRef(false);
+  const loadEquipmentActivityLogsRef = useRef<(() => Promise<void>) | null>(null);
+
   const loadEquipmentActivityLogs = useCallback(async () => {
     if (!equipmentId || projectId !== 'standalone') return;
     
+    // Prevent concurrent loads - if already loading, skip this call
+    if (isLoadingRef.current) {
+      return;
+    }
+    
     try {
+      isLoadingRef.current = true;
       setIsLoadingEquipmentLogs(true);
       const { activityApi } = await import('@/lib/activityApi');
       // Use standalone equipment activity logs API
@@ -31,9 +40,15 @@ const StandaloneEquipmentLogsTab: React.FC<StandaloneEquipmentLogsTabProps> = ({
       console.error('Error loading standalone equipment activity logs:', error);
       setEquipmentActivityLogs([]);
     } finally {
+      isLoadingRef.current = false;
       setIsLoadingEquipmentLogs(false);
     }
   }, [equipmentId, projectId]);
+
+  // Keep ref in sync with the callback
+  useEffect(() => {
+    loadEquipmentActivityLogsRef.current = loadEquipmentActivityLogs;
+  }, [loadEquipmentActivityLogs]);
 
   const lastEquipmentIdRef = useRef<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,11 +116,12 @@ const StandaloneEquipmentLogsTab: React.FC<StandaloneEquipmentLogsTabProps> = ({
 
   // Listen for equipment changes to refresh logs (event-based, not prop-based)
   useEffect(() => {
-    if (projectId === 'standalone') {
+    if (projectId === 'standalone' && equipmentId) {
       const handleEquipmentChanged = (event: any) => {
-        // Refresh logs when equipment is updated (but don't reset the interval)
-        if (equipmentId && projectId === 'standalone') {
-          loadEquipmentActivityLogs();
+        // Only refresh if this event is for the current equipment and not already loading
+        const eventEquipmentId = event.detail?.equipmentId || event.detail?.id;
+        if (eventEquipmentId === equipmentId && !isLoadingRef.current && loadEquipmentActivityLogsRef.current) {
+          loadEquipmentActivityLogsRef.current();
         }
       };
 
@@ -115,8 +131,6 @@ const StandaloneEquipmentLogsTab: React.FC<StandaloneEquipmentLogsTabProps> = ({
         window.removeEventListener('equipmentChanged', handleEquipmentChanged);
       };
     }
-    // Intentionally exclude loadEquipmentActivityLogs to prevent infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, equipmentId]);
 
   // Handle activity updates via ref to avoid dependency issues

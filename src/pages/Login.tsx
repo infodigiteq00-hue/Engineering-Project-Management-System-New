@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { fastAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -224,6 +225,15 @@ const Login = () => {
       let userData = null;
       let userError = null;
 
+      // 🔧 FIX: Check invites table first for pending invitations
+      let inviteData = null;
+      try {
+        inviteData = await fastAPI.getInviteByEmail(authData.user.email);
+        console.log('🔍 Invite check result:', inviteData);
+      } catch (inviteError) {
+        console.log('⚠️ Error checking invites (non-fatal):', inviteError);
+      }
+
       try {
         // Use only ID query (faster, guaranteed to exist from auth) - reduced from 8s to 5s timeout
         const idResult = await withTimeout(
@@ -237,6 +247,38 @@ const Login = () => {
 
         if (idResult.data && !idResult.error) {
           userData = idResult.data;
+          
+          // 🔧 FIX: If user exists but has wrong role, check invites and update
+          if (inviteData && inviteData.role && userData.role !== inviteData.role) {
+            console.log('⚠️ User role mismatch detected! User has:', userData.role, 'but invite says:', inviteData.role);
+            console.log('🔄 Updating user role from invite...');
+            
+            const { data: updateData, error: updateError } = await supabase
+              .from('users')
+              .update({
+                role: inviteData.role,
+                firm_id: inviteData.firm_id || userData.firm_id,
+                project_id: inviteData.project_id || userData.project_id,
+                assigned_by: inviteData.invited_by || userData.assigned_by
+              } as any)
+              .eq('id', authData.user.id)
+              .select();
+            
+            if (!updateError && updateData) {
+              userData = updateData;
+              console.log('✅ User role updated from invite:', updateData);
+              
+              // Mark invite as accepted
+              try {
+                await fastAPI.updateInviteStatus(inviteData.id, 'accepted');
+                console.log('✅ Invite marked as accepted');
+              } catch (updateInviteError) {
+                console.log('⚠️ Could not update invite status:', updateInviteError);
+              }
+            } else {
+              console.error('❌ Failed to update user role:', updateError);
+            }
+          }
         } 
         // If user not found by ID, try email-based lookup (handles ID mismatches)
         else if (idResult.error?.code === 'PGRST116' || !idResult.data) {
@@ -258,11 +300,69 @@ const Login = () => {
             );
 
             if (emailResult.data && !emailResult.error) {
-              userData = emailResult.data;
-              console.log('✅ User found by email:', emailResult.data.email);
+              // 🔧 FIX: Check for ID mismatch
+              if (emailResult.data.id !== authData.user.id) {
+                // ❌ ID MISMATCH: User found by email but has wrong ID
+                console.error('⚠️ ID MISMATCH DETECTED!');
+                console.error('  Auth ID:', authData.user.id);
+                console.error('  Users table ID:', emailResult.data.id);
+                console.error('  Email:', emailResult.data.email);
+                console.error('  This user needs to be fixed. The ID should match the Auth ID.');
+                console.error('  This can be fixed by signing up again or contacting support.');
+                
+                // Still use the user data for login, but log the issue
+                // The proper fix should happen during signup (which we've now fixed)
+                userData = emailResult.data;
+                console.log('⚠️ Using user data with mismatched ID. User should re-signup to fix this.');
+              } else {
+                // ✅ ID matches - everything is good
+                userData = emailResult.data;
+                console.log('✅ User found by email with matching ID:', emailResult.data.email);
+              }
+              
+              // 🔧 FIX: If user exists but has wrong role, check invites and update
+              if (inviteData && inviteData.role && userData.role !== inviteData.role) {
+                console.log('⚠️ User role mismatch detected! User has:', userData.role, 'but invite says:', inviteData.role);
+                console.log('🔄 Updating user role from invite...');
+                
+                const { data: updateData, error: updateError } = await supabase
+                  .from('users')
+                  .update({
+                    role: inviteData.role,
+                    firm_id: inviteData.firm_id || userData.firm_id,
+                    project_id: inviteData.project_id || userData.project_id,
+                    assigned_by: inviteData.invited_by || userData.assigned_by
+                  } as any)
+                  .eq('id', authData.user.id)
+                  .select();
+                
+                if (!updateError && updateData) {
+                  userData = updateData;
+                  console.log('✅ User role updated from invite:', updateData);
+                  
+                  // Mark invite as accepted
+                  try {
+                    await fastAPI.updateInviteStatus(inviteData.id, 'accepted');
+                    console.log('✅ Invite marked as accepted');
+                  } catch (updateInviteError) {
+                    console.log('⚠️ Could not update invite status:', updateInviteError);
+                  }
+                } else {
+                  console.error('❌ Failed to update user role:', updateError);
+                }
+              }
             } else if (emailResult.error?.code === 'PGRST116') {
               // User not found by email either - create new record
               console.log('⚠️ User not found by email, creating new user record...');
+              
+              // 🔧 FIX: Use invite data if available, otherwise default to 'viewer'
+              const defaultRole = inviteData?.role || 'viewer';
+              const defaultFirmId = inviteData?.firm_id || null;
+              const defaultProjectId = inviteData?.project_id || null;
+              const defaultAssignedBy = inviteData?.invited_by || null;
+              
+              console.log('📝 Creating user with role:', defaultRole, 'from', inviteData ? 'invite' : 'default');
+              
               const createResult = await withTimeout(
                 supabase
                   .from('users')
@@ -270,7 +370,10 @@ const Login = () => {
                     id: authData.user.id,
                     email: authData.user.email,
                     full_name: authData.user.user_metadata?.full_name || 'User',
-                    role: userRole, // Default role - can be updated later by admin
+                    role: defaultRole, // ✅ Use invite role if available
+                    firm_id: defaultFirmId,
+                    project_id: defaultProjectId,
+                    assigned_by: defaultAssignedBy,
                     is_active: true
                   } as any)
                   .select()
@@ -280,7 +383,17 @@ const Login = () => {
 
               if (createResult.data && !createResult.error) {
                 userData = createResult.data;
-                console.log('✅ New user record created');
+                console.log('✅ New user record created with role:', defaultRole);
+                
+                // Mark invite as accepted if it was used
+                if (inviteData) {
+                  try {
+                    await fastAPI.updateInviteStatus(inviteData.id, 'accepted');
+                    console.log('✅ Invite marked as accepted');
+                  } catch (updateInviteError) {
+                    console.log('⚠️ Could not update invite status:', updateInviteError);
+                  }
+                }
               } else {
                 userError = createResult.error || new Error('Failed to create user record');
               }
@@ -289,6 +402,10 @@ const Login = () => {
               console.warn('⚠️ Email lookup error (non-fatal):', emailResult.error);
               // Still try to create user record as fallback
               try {
+                // 🔧 FIX: Use invite data if available
+                const defaultRole = inviteData?.role || 'viewer';
+                const defaultFirmId = inviteData?.firm_id || null;
+                
                 const createResult = await withTimeout(
                   supabase
                     .from('users')
@@ -296,7 +413,8 @@ const Login = () => {
                       id: authData.user.id,
                       email: authData.user.email,
                       full_name: authData.user.user_metadata?.full_name || 'User',
-                      role: 'viewer', // Default role - can be updated later by admin
+                      role: defaultRole, // ✅ Use invite role if available
+                      firm_id: defaultFirmId,
                       is_active: true
                     } as any)
                     .select()
@@ -305,7 +423,17 @@ const Login = () => {
                 );
                 if (createResult.data && !createResult.error) {
                   userData = createResult.data;
-                  console.log('✅ User record created as fallback');
+                  console.log('✅ User record created as fallback with role:', defaultRole);
+                  
+                  // Mark invite as accepted if it was used
+                  if (inviteData) {
+                    try {
+                      await fastAPI.updateInviteStatus(inviteData.id, 'accepted');
+                      console.log('✅ Invite marked as accepted');
+                    } catch (updateInviteError) {
+                      console.log('⚠️ Could not update invite status:', updateInviteError);
+                    }
+                  }
                 } else {
                   userError = emailResult.error || new Error('Failed to fetch user data. Please check your connection.');
                 }
